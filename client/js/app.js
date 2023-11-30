@@ -27,8 +27,13 @@
       body: JSON.stringify(data),
       headers: { "Content-type": "application/json" },
     })
-    .then(response => response.json())
-    .then(json => updateOrderForm(json));
+    .then(response => {
+        if(response.ok) {
+            return response.json().then(json => updateOrderForm(json));
+        } else {
+            alert("something went wrong!");
+        }
+    });
   }
 
   function updateOrderForm(json) {
