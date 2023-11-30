@@ -29,6 +29,12 @@ struct Order {
     total: f32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct OrderError {
+    status: String,
+    message: String,
+}
+
 /*
 impl Order {
     fn new(
@@ -77,9 +83,14 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, anyhow::Er
                 .await?;
 
             if resp.status() != reqwest::StatusCode::OK {
-                let mut not_found = Response::default();
-                *not_found.status_mut() = StatusCode::NOT_FOUND;
-                Ok(not_found)
+                let err = OrderError {
+                    status: "error".to_string(),
+                    message: format!(
+                        "Zip code {} not does not have a sales tax rate!",
+                        order.shipping_zip
+                    ),
+                };
+                Ok(response_err_build(&serde_json::to_string_pretty(&err)?))
             } else {
                 let rate = resp.text().await?.parse::<f32>()?;
 
@@ -100,6 +111,19 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, anyhow::Er
 // CORS headers
 fn response_build(body: &str) -> Response<Body> {
     Response::builder()
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        .header(
+            "Access-Control-Allow-Headers",
+            "api,Keep-Alive,User-Agent,Content-Type",
+        )
+        .body(Body::from(body.to_owned()))
+        .unwrap()
+}
+
+fn response_err_build(body: &str) -> Response<Body> {
+    Response::builder()
+        .status(StatusCode::NOT_FOUND)
         .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         .header(
